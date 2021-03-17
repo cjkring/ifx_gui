@@ -296,6 +296,9 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 iqplot_update_fig.lastReading = None
 if  __name__ == "__main__":
 
+    with open('/tmp/ifx_gui.pid', 'w') as f:
+        f.write(osgetpid())
+
     config = read_config()
     validate_config(config)
     app_logging(config,logging.DEBUG)
