@@ -2,13 +2,24 @@
 # config.yml is ignored by git to preserve security of the AWS keys
 # data_dir: the location of the data files
 # sensor_id: added to the file names to differentiate sensors after data is exported to AWS
-
-ifx_gui:
-    sensor_id: 
-    data_dir: data
+app:
+    sensor_id: cjk
+    data: data
+    logfile: log/ifxgui.log
+    image_size: 40x40
+    annotations:
+        - adult walking
+        - kid walking
+        - elderly walking
+        - pet
+        - sleeping
+        - sitting
+        - working
+        - empty
 aws:
-    region: us-west
-    key: 
-    key_id: 
-    bucket: plume_ai_programming
+    region: us-west-2
+    key: ADD_HERE
+    key_id: ADD_HERE
+    bucket: plume-gandalf-prototyping
     table: chi_agg_qoe_hourly
+    endpoint_url: https://bucket.vpce-02c09c7a0b13cf141-2lt8i1mx.s3.us-west-2.vpce.amazonaws.com
