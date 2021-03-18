@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 from frame_process import frame_rgba
 import multiprocessing as mp
 
+from os import getpgid, getpid, setpgid
 import numpy as np
 import logging
 import time
@@ -160,7 +161,7 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 
     # this produces a dangling root window but is needed for the filesaveas dialogs to work
     Tk()  
-    logging.warning("IQ Plot Thread started")
+    #logging.warning("IQ Plot Thread started")
     fig = plt.figure()
     # font = {'family': 'monospace',
     #         'weight': 'normal',
@@ -296,8 +297,10 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 iqplot_update_fig.lastReading = None
 if  __name__ == "__main__":
 
-    with open('/tmp/ifx_gui.pid', 'w') as f:
-        f.write(osgetpid())
+    #setpgid(getpid(), getpgid(getppid()))
+    setpgid(0,0)
+    with open('/tmp/ifx_gui.gid', 'w') as pid:
+        pid.write(f"{getpgid(getpid())}")
 
     config = read_config()
     validate_config(config)

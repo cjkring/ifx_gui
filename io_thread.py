@@ -118,7 +118,7 @@ parse_data.prev_seqno = 0
 # this is the interface to the Sense2Go module via a USB CDC serial port
 
 def io_thread_impl(reading_q):
-    logging.warning("IO Thread started")
+    #logging.warning("IO Thread started")
     io_thread_impl.keep_running = True
 
     
@@ -163,7 +163,7 @@ def io_thread_impl(reading_q):
         else:
             time.sleep(1)
                 
-    logging.warning("IO Thread ended")
+    #logging.warning("IO Thread ended")
 
 def io_thread_lock(value):
     if value == True:

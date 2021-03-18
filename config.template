@@ -4,8 +4,8 @@
 # sensor_id: added to the file names to differentiate sensors after data is exported to AWS
 app:
     sensor_id: cjk
-    data: data
-    logfile: log/ifxgui.log
+    data: /var/ifx_gui/data
+    logfile: /var/ifx_gui/log/ifxgui.log
     image_size: 40x40
     annotations:
         - adult walking

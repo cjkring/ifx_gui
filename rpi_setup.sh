@@ -8,7 +8,7 @@ sudo reboot now  # xfce4 should come up
 # went into raspi-config to set display resolution
 sudo apt install python3 python3-pip git tkinter
 sudi apt install libatlas-base-dev
-sudo apt install python3-bottleneck 
+sudo apt install python3-bottleneck python3-matplotlib python3-yaml python3-serial python3-fastavro python3-gpiozero
 
 # validate that the camera work
 raspistill -o /tmp/image.png
@@ -48,7 +48,14 @@ sudo systemctl disable avahi-daemon
 #check open ports
 ss -tulw
 
+#start 
 
+# optional -- set up vscode from your workstation
+# start vscode on your mac
+# install 'Remote - SSH' extension
+# click lower red corner,  select 'Remote SSH: Connect to host'
+# input pi IP address, pi user, pi password as appropriate
+# open /opt/ifx_gui
 
 
 

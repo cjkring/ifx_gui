@@ -1,9 +1,0 @@
-[Unit]
-Description=Gandalf Ifx-gui applications
-Documentation=None
-After=network.target auditd.service
-
-[Service]
-ExecStart=/opt/ifx_gui/start_ifx_gui.sh
-ExecStop=/opt/ifx_gui/stop_ifx_gui.sh
-Type=process

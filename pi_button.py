@@ -1,8 +1,15 @@
 from gpiozero import Button
 from time import sleep
+from os import system
 
 def button_on(button):
-    print(f'Pressed {button}')
+    try:
+        #print(f'Pressed {button}')
+        system('/opt/ifx_gui/toggle_ifx_gui.sh')
+        # let thing clean up
+        sleep(5)
+    except Exception as e:
+        print(f'toggle ifx gui: {e}')
     
 def button_held(button): 
     print(f'Held {button}')
@@ -10,19 +17,12 @@ def button_held(button):
 def button_off(button):
     print(f'Released {button}')
 
-from numpy import arange
-for gpio in [27,23,22,18]:
-    try:
-        button = Button(int(gpio), hold_time = 0.25, hold_repeat=True)
-        button.when_activated = button_on
-        button.when_held = button_held
-        button.when_deactivated = button_off
-    except Exception as e:
-        print(f'GPIO {gpio}: {e}')
+#for gpio in [27,23,22,18]:
+try:
+    button = Button(int(27), hold_time = 1.0, hold_repeat=True)
+    button.when_activated = button_on
+except Exception as e:
+    print(f'GPIO {gpio}: {e}')
 
 while True:
-    #if button.is_pressed:
-    #    print("Pressed")
-    #else:
-    #    print("Released")
-    sleep(1)
+    sleep(0.1)
