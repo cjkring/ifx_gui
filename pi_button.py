@@ -5,8 +5,8 @@ from os import system
 def button_on(button):
     try:
         #print(f'Pressed {button}')
-        system('/opt/ifx_gui/toggle_ifx_gui.sh')
-        # let thing clean up
+        system('/opt/ifx_gui/bin/toggle_ifx_gui.sh')
+        # let things clean up
         sleep(5)
     except Exception as e:
         print(f'toggle ifx gui: {e}')

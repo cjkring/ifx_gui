@@ -23,7 +23,7 @@ sudo mv ifx_gui /opt
 sudo mkdir /var/ifx_gui
 sudo chown pi /var/ifx_gui
 mkdir /var/ifx_gui/data
-mkdor /var/ifx_gui/log
+mkdir /var/ifx_gui/log
 cd /opt/ifx_gui
 cp config.template config.yml
 
@@ -49,6 +49,12 @@ sudo systemctl disable avahi-daemon
 ss -tulw
 
 #start 
+XFCE (right mouse button) -> Applications -> Settings -> Session and Startup -> Autostart(tab)
++Add
+Name = ifx_button_handler
+Description = rpi 2.7" TFT button hander
+Command /opt/ifx_gui/bin/pi_button_handler.sh
+
 
 # optional -- set up vscode from your workstation
 # start vscode on your mac

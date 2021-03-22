@@ -70,7 +70,7 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         reading = reading_q.get()
         readings.put(reading)
         frame_rgba(readings, readings.head, reading)
-        reading['annotation'] = getAnnotations().NONE
+        reading['annotation'] = getAnnotations().NONE.name
         if img_q.empty() == False:
             reading['image'] = img_q.get()
             #print(f'added image: {reading["seqno"]}')
@@ -86,10 +86,10 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
 
         # in case annotation button was pressed during the last frame
         # this is brute force and perhaps incorrect -- perhaps should be cached
-        if buttons.annotation != getAnnotations().EXISTING:
+        if buttons.annotation != getAnnotations().EXISTING.name:
             reading = readings.get(iqplot_update_fig.lastReading)
             if reading is not None:
-                reading['annotation'] = buttons.annotation
+                reading['annotation'] = buttons.annotation.name
 
         idx = buttons.indexFn(iqplot_update_fig.lastReading,readings)
 
@@ -111,11 +111,11 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         #print(f'iqplot update: seqno = {reading["seqno"]}')
 
         # annotation specified by radio button
-        if buttons.annotation != getAnnotations().EXISTING:
-            reading['annotation'] = buttons.annotation
+        if buttons.annotation != getAnnotations().EXISTING.name:
+            reading['annotation'] = buttons.annotation.name
 
         date_time = datetime.fromtimestamp(reading['timestamp'])
-        seqno.set_text(f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"].name}')
+        seqno.set_text(f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"]}')
         #print(f'{reading["seqno"]},{reading["count"]},{packet[0]},{packet[-1]}')
 
         #iq plot
