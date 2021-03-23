@@ -6,6 +6,7 @@ from time import time
 from config import read_config, validate_config
 from annotations import getAnnotations, addToAnnotations
 from copy import deepcopy
+import logging
 
 base_schema = {
     'name': 'Reading',
@@ -32,7 +33,7 @@ def updateAndParseSchema():
     try:
         parsed_schema = parse_schema(schema)
     except Exception as e:
-        print(f'avro updateAndParseSchema: {e}')
+        logging.getLogger(__name__).exception('avro exception in updateAndParseSchema:')
         return None
     return parsed_schema
 
@@ -46,9 +47,9 @@ def avroExport(filename, readings):
             # write the schema and headers with the first on
             writer(f, parsed_schema, readings)
     except Exception as e:
-        print(f'AvroExport: {e}')
+        logging.getLogger(__name__).exception('caught exception in avroExport:')
     now = round( time(), 3 )
-    print(f'AvroExport:{count} readings in {now-prev} seconds')
+    logging.getLogger(__name__).info(f'{count} readings in {now-prev} seconds')
 
 def avroImport(filename, readings):
     prev = round( time(), 3 )
@@ -69,11 +70,10 @@ def avroImport(filename, readings):
                 reading["image"] = record["image"]
                 readings.put(reading)
                 count += 1
-        print(f'AvroImport: {count} readings imported')
+        now = round( time(), 3 )
+        logging.getLogger(__name__).info(f'{count} readings imported in {now-prev} seconds')
     except Exception as e:
-        print(f'AvroImport: {e}')
-    now = round( time(), 3 )
-    print(f'AvroImport:{count} readings in {now-prev} seconds')
+        logging.getLogger(__name__).exception('Caught exception in AvroImport')
     return readings
 
 # TEST CODE

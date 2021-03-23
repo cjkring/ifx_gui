@@ -35,7 +35,7 @@ def frame_phase_velocity(reading):
         reading['phase_velocity'] = bn.move_mean( velocity, window=5, min_count=1 )
         #reading['phase_velocity'] = velocity
     except Exception as e:
-        print(f'Exception: phase velocity: {e}')
+        logging.getLogger(__name__).exception('Caught exception: phase velocity:')
         # dont die but create a noticable result
         reading['phase_velocity'] = reading['phase']
 
@@ -61,7 +61,7 @@ def frame_unroll_phase(reading):
         reading['phase_unrolled'] = unroll
         reading.rollover_count = count
     except Exception as e:
-        print(f'Exception: unroll_phase: {e}')
+        logging.getLogger(__name__).exception('Caught exception in unroll_phase:')
         # dont die but create a noticable result
         reading['phase_unrolled'] = reading['phase']
         reading.rollover_count = 0

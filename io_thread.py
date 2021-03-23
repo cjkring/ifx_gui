@@ -103,7 +103,7 @@ def parse_data(reading_q, packet,loc):
         process_frame(reading)
         reading_q.put(reading)
     except Exception as e:
-        print(f'parsing exception: dropping packet after {seqno}:{e}')
+        logger.exception(f'parsing exception: dropping packet after {seqno}:')
         return
 
 parse_data.avg_count = 0
@@ -122,7 +122,7 @@ parse_data.prev_seqno = 0
 def io_thread_impl(reading_q):
     logger = logging.getLogger(__name__)
     app_logging(logger, read_config(),logging.INFO,"io_thread.log")
-    logger.warning("IO Thread started")
+    logger.info("IO Thread started")
     io_thread_impl.keep_running = True
 
     
@@ -155,7 +155,7 @@ def io_thread_impl(reading_q):
                     try:
                         data = ser.read(1024)
                         length = len(data)
-                        #print("recv", length, ": ", list(data))
+                        print("recv", length, ": ", list(data))
                         if(length > 0):         
                             marshall(reading_q, data)
                             #time.sleep(0.001)

@@ -22,7 +22,7 @@ def image_thread(config,img_q):
     if enableCamera == False:
         logger.warning('PiCamera not installed -- images disabled')
         return
-    (h,w) = conf['app']['image_size'].split('x')
+    (h,w) = config['app']['image_size'].split('x')
     h = 64
     w = 64
     camera = picamera.PiCamera()

@@ -13,13 +13,14 @@ def awsExport(config, filename):
     bucket = s3.Bucket(aws_config['bucket'])
     basename = os.path.basename(filename)
     aws_name = f'{table}/{basename.replace("_","/")}'
+    from logging import getLogger
 
     try:
         response = bucket.upload_file(filename, aws_name)
-        print(f'awsUpload {basename} as {aws_name}')
+        logging.getLogger(__name__).info(f'awsUpload {basename} as {aws_name}')
 
     except Exception as e:
-        print(f'Aws connector: {e}')
+        logging.getLogger(__name__).exception('Caught exception in awsExport')
         return False    
     return True
 

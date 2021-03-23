@@ -5,8 +5,8 @@ from app_logging import app_logging
 from config import read_config
 from os import system
 
-logger = logger.getLogger(__name__)
-app_logging(logger, read_config, logging.INFO, "buttons.log")
+logger = logging.getLogger(__name__)
+app_logging(logger, read_config(), logging.INFO, "buttons.log")
 
 def button_on(button):
     try:

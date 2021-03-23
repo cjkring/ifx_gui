@@ -8,6 +8,7 @@ from time import time_ns
 import matplotlib.pyplot as plt
 from iqplot import createRadioButton
 from aws_connector import awsExport
+from logging import getLogger
 
 class ButtonPress(object):
     def __init__(self):
@@ -26,7 +27,7 @@ class ButtonPress(object):
     # annotation radio button
     def annotate(self, event):
         self.annotation = getAnnotations()[event]
-        print(f'setting annotation to {self.annotation}')
+        getLogger(__name__).info(f'setting annotation to {self.annotation}')
 
     # frame slider
     def frame(self, event):
@@ -120,7 +121,7 @@ class ButtonPress(object):
     def save(self,config,readings):
         datadir = config['app']['data']
         filename = asksaveasfilename(initialdir=datadir,filetypes = (("avro files","*.avro"),("all files","*.*")))
-        print(f'save: {filename}')
+        getLogger(__name__).info(f'save: {filename}')
         avroExport(filename, readings)
         io_thread_lock(False)
         self.indexFn = self.last_impl
@@ -129,7 +130,7 @@ class ButtonPress(object):
         datadir = config['app']['data']
         filename = askopenfilename(initialdir=datadir,filetypes = (("avro files","*.avro"),("all files","*.*")))
         if filename != '':
-            print(f'load: {filename}')
+            getLogger(__name__).info(f'load: {filename}')
             io_thread_lock(True)
             self.indexFn = self.stop_impl
             avroImport(filename, readings)
@@ -141,5 +142,5 @@ class ButtonPress(object):
         datadir = config['app']['data']
         filename = askopenfilename(initialdir=datadir,filetypes = (("avro files","*.avro"),("all files","*.*")))
         if filename != '':
-            print(f'export: {filename}')
+            getLogger(__name__).info(f'export: {filename}')
             awsExport(config, filename)

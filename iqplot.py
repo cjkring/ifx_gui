@@ -13,7 +13,7 @@ Created on Tue Dec  8 14:56:54 2020
 from platform import system
 import matplotlib
 from tkinter import Tk
-if system() is 'Linux':
+if system() == 'Linux':
     matplotlib.use('tkagg')
 else:
     matplotlib.use('macosx')
@@ -45,6 +45,7 @@ from app_logging import app_logging
 numpoints = 256
 video_frames = 50
 anim = None
+logging.getLogger().setLevel(logging.INFO)
 
 # business logic for what rbga frames to show
 def calc_window(idx,window_size,readings):
