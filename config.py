@@ -1,8 +1,7 @@
 import yaml
 import logging
-from app_logging import test_logging
-
-logger = logging.getLogger("ifxgui.config")
+from app_logging import app_logging
+logger = logging.getLogger("config")
 
 def read_config():
     try:
@@ -20,7 +19,7 @@ def validate_config(config):
     app_config = config['app']
     for key in ['sensor_id','data','annotations']:
         if key not in app_config:
-            print(f'config validation: {key} does not exist in app config')
+            loggeer.error(f'config validation: {key} does not exist in app config')
             retval = False
 
     aws_config = config['aws']

@@ -3,19 +3,24 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import math
-enableCamera = True
+import logging
+from app_logging import app_logging
+
 
 # NOTE:  The image is captured and manipulated as an np array, then converted to native
 # bytes because this is what works for avro import / export.   If has to be converted back 
 # to a np array for imshow
+enableCamera = True
 try:
     import picamera
 except ImportError as e:
     enableCamera = False
 
-def image_thread(conf,img_q):
+def image_thread(config,img_q):
+    logger = logging.getLogger(__name__)
+    app_logging(logger, config, logging.INFO, "image.log")
     if enableCamera == False:
-        print('PiCamera not installed -- images disabled')
+        logger.warning('PiCamera not installed -- images disabled')
         return
     (h,w) = conf['app']['image_size'].split('x')
     h = 64
@@ -24,7 +29,7 @@ def image_thread(conf,img_q):
     camera.resolution = (w,h)
     # black and white
     camera.color_effects = (128,128)
-    while 1:
+    while True:
         frame = np.empty((h*w*2),dtype=np.ubyte)
         camera.capture(frame,'yuv')
         img = np.rot90(np.resize(frame,(h,w)))

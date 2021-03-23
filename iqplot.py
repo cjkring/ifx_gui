@@ -5,20 +5,25 @@ Created on Tue Dec  8 14:56:54 2020
 @author: cjkri
 """
 
-from tkinter import Tk
 #from matplotlib.backends.backend_tkagg import (
 #    FigureCanvasTkAgg, NavigationToolbar2Tk)
 # Implement the default Matplotlib key bindings.
 #from matplotlib.backend_bases import key_press_handler
 
+from platform import system
 import matplotlib
-matplotlib.use('tkagg')
+from tkinter import Tk
+if system() is 'Linux':
+    matplotlib.use('tkagg')
+else:
+    matplotlib.use('macosx')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.figure import Figure
 from frame_process import frame_rgba
 import multiprocessing as mp
 
+from os import getpgid, getpid, setpgid
 import numpy as np
 import logging
 import time
@@ -145,7 +150,7 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
 
         return scat,phase_plot,velocity_plot,unrolled_plot,mag_plot,seqno, video, image
     except Exception as e:
-        print(f'iqplot_update_fig: {e}')
+        logger.exception('iqplot_update_fig exception')
         return []
 
     
@@ -160,7 +165,7 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 
     # this produces a dangling root window but is needed for the filesaveas dialogs to work
     Tk()  
-    logging.warning("IQ Plot Thread started")
+    logging.getLogger(__name__).warning("IQ Plot Thread started")
     fig = plt.figure()
     # font = {'family': 'monospace',
     #         'weight': 'normal',
@@ -296,12 +301,13 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 iqplot_update_fig.lastReading = None
 if  __name__ == "__main__":
 
-    with open('/tmp/ifx_gui.pid', 'w') as f:
-        f.write(osgetpid())
+    setpgid(0,0)
+    with open('/tmp/ifx_gui.gid', 'w') as pid:
+        pid.write(f"{getpgid(getpid())}")
 
     config = read_config()
     validate_config(config)
-    app_logging(config,logging.DEBUG)
+    app_logging(logging.getLogger(__name__),config,logging.DEBUG,"iqplot.log")
     addToAnnotations(config['app']['annotations'])
     readings = rd_store.Readings()
 

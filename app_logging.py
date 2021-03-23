@@ -1,25 +1,12 @@
 import logging
-from logging.handlers import WatchedFileHandler
+from logging.handlers import RotatingFileHandler
 import sys
 
-def test_logging():
-    root = logging.getLogger('ifxgui')
-    root.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# this enforces consistent logging across all processes
+def app_logging(logger, config,level,logfile):
+    logdir = config['app']['log']
+    handler = RotatingFileHandler(f'{logdir}/{logfile}',maxBytes=10000,backupCount=5)
+    handler.setLevel(level)
+    formatter = logging.Formatter('%(levelname)s: %(asctime)s: %(name)s: %(message)s')
     handler.setFormatter(formatter)
-    root.addHandler(handler)
-
-def app_logging(config,level):
-    root = logging.getLogger('ifxgui')
-    root.setLevel(level)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-
-    handler = WatchedFileHandler(config['app']['logfile'])
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
+    logger.addHandler(handler)

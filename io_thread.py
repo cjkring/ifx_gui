@@ -14,6 +14,8 @@ import rd_store
 import serial
 import serial.tools.list_ports
 from frame_process import process_frame
+from app_logging import app_logging
+from config import read_config
 
 
 samples_per_packet = 256
@@ -118,21 +120,27 @@ parse_data.prev_seqno = 0
 # this is the interface to the Sense2Go module via a USB CDC serial port
 
 def io_thread_impl(reading_q):
-    logging.warning("IO Thread started")
+    logger = logging.getLogger(__name__)
+    app_logging(logger, read_config(),logging.INFO,"io_thread.log")
+    logger.warning("IO Thread started")
     io_thread_impl.keep_running = True
 
     
     foundPort = False
+    first = True
     while foundPort is False:
         port = None
         for p in serial.tools.list_ports.comports():
             if p.vid == 4966 and p.pid == 261:
                 port = p
                 foundPort = True
-                print(f'Found: {port}')
+                logger.info(f'Found: {port}')
                 break
 
         if foundPort == False:
+            if first:
+                 logger.warning(f'io_thread: Cannot find serial port')
+                 first = False
             time.sleep(1)
 
     first = True
@@ -152,12 +160,12 @@ def io_thread_impl(reading_q):
                             marshall(reading_q, data)
                             #time.sleep(0.001)
                     except:
-                        print('closing serial port')
+                        logger.exception('closing serial port')
                         ser.close()
                         break
             except Exception as e:
                 if first:
-                    print(f'io_thread: Cannot open serial port: {e}')
+                     logger.warn(f'io_thread: Cannot open serial port: {e}')
                 first = False
                 time.sleep(1)
         else:
@@ -179,7 +187,8 @@ def io_thread_lock(value):
  # into the Sense2Go M0 MCU and we are now getting data from the serial interface.
 
 def io_thread_socket_impl(reading_q):
-    logging.warning("IO Thread started")
+    logger = logger.getLogger(__name__)
+    logger.info("IO Thread started")
 
     keep_running = 1
 
@@ -196,11 +205,11 @@ def io_thread_socket_impl(reading_q):
 
             # Connect the socket to the port where the server is listening
             server_address = (tcp_addr, tcp_port)
-            print('connecting to {} port {}'.format(*server_address))
+            logger.info('connecting to {} port {}'.format(*server_address))
             try:
                 sock.connect(server_address)
             except socket.error:
-                print('error opening socket')
+                logger.error('error opening socket')
                 sock.close()
                 time.sleep(0.5)
                 continue
@@ -211,7 +220,7 @@ def io_thread_socket_impl(reading_q):
                 try:
                     data = sock.recv(1024)
                 except socket.error:
-                    print('closing socket')
+                    logger.warn('closing socket')
                     sock.close()
                     break
                 length = len(data)
