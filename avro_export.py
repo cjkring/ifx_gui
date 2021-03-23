@@ -5,8 +5,9 @@ import os
 from time import time
 from config import read_config, validate_config
 from annotations import getAnnotations, addToAnnotations
+from copy import deepcopy
 
-schema = {
+base_schema = {
     'name': 'Reading',
     'type': 'record',
     #'namespace': 'ifx_gui',
@@ -20,11 +21,11 @@ schema = {
         {'name': 'phase', 'type': {'type': 'array','items':'float'}},
         {'name': 'phase_velocity', 'type': {'type': 'array','items':'float'}},
         {'name': 'phase_unrolled', 'type': {'type': 'array','items':'float'}},
-        #{'name': 'image', 'type': ['null', {'type': 'array','items':'bytes'}]},
         {'name': 'image', 'type': ['null','bytes']},
     ]
 }
 def updateAndParseSchema():
+    schema = deepcopy(base_schema)
     labels = [anno.name for anno in getAnnotations()]
     annotation = {'name':'annotation','type': {'type':'enum','name':'annotation','symbols':labels}}
     schema['fields'].append(annotation)
@@ -122,7 +123,7 @@ if  __name__ == "__main__":
 
     prev = round( time(), 3 )
     readings = Readings()
-    for seqno in range(10000):
+    for seqno in range(100):
         reading = Reading( seqno, 256, np.random.randint(-2500,2500,256), np.random.randint(-2500,2500,256))
         readings.put(reading)
         reading['annotation'] = random.choice(list(getAnnotations())).name

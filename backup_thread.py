@@ -17,9 +17,10 @@ def backup_impl(readings,config):
     data = config['app']['data']
     
     basename = f'year={now.year}_month={now.month}_day={now.day}_hour={now.hour}_{sensor_id}.avro'
+    #basename = f'test.{time.time()}.avro'
     filename = path.join(data, basename)
     avroExport(filename, backup)
-    awsExport(config, filename)
+    #awsExport(config, filename)
 
 def backup_thread_impl(readings,config):
     logging.info("Backup thread started")

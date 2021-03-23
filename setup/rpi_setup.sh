@@ -8,7 +8,7 @@ sudo reboot now  # xfce4 should come up
 # went into raspi-config to set display resolution
 sudo apt install python3 python3-pip git tkinter
 sudi apt install libatlas-base-dev
-sudo apt install python3-bottleneck 
+sudo apt install python3-bottleneck python3-matplotlib python3-yaml python3-serial python3-fastavro python3-gpiozero
 
 # validate that the camera work
 raspistill -o /tmp/image.png
@@ -23,7 +23,7 @@ sudo mv ifx_gui /opt
 sudo mkdir /var/ifx_gui
 sudo chown pi /var/ifx_gui
 mkdir /var/ifx_gui/data
-mkdor /var/ifx_gui/log
+mkdir /var/ifx_gui/log
 cd /opt/ifx_gui
 cp config.template config.yml
 
@@ -48,7 +48,20 @@ sudo systemctl disable avahi-daemon
 #check open ports
 ss -tulw
 
+#start 
+XFCE (right mouse button) -> Applications -> Settings -> Session and Startup -> Autostart(tab)
++Add
+Name = ifx_button_handler
+Description = rpi 2.7" TFT button hander
+Command /opt/ifx_gui/bin/pi_button_handler.sh
 
+
+# optional -- set up vscode from your workstation
+# start vscode on your mac
+# install 'Remote - SSH' extension
+# click lower red corner,  select 'Remote SSH: Connect to host'
+# input pi IP address, pi user, pi password as appropriate
+# open /opt/ifx_gui
 
 
 

@@ -171,7 +171,7 @@ def io_thread_impl(reading_q):
         else:
             time.sleep(1)
                 
-    logging.warning("IO Thread ended")
+    #logging.warning("IO Thread ended")
 
 def io_thread_lock(value):
     if value == True:
