@@ -103,7 +103,7 @@ def parse_data(reading_q, packet,loc):
         process_frame(reading)
         reading_q.put(reading)
     except Exception as e:
-        logger.exception(f'parsing exception: dropping packet after {seqno}:')
+        logging.getLogger(__NAME__).exception(f'parsing exception: dropping packet after {seqno}:')
         return
 
 parse_data.avg_count = 0
