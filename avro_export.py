@@ -6,7 +6,8 @@ from time import time
 from config import read_config, validate_config
 from annotations import getAnnotations, addToAnnotations
 from copy import deepcopy
-import logging
+from logging import getLogger
+from frame_process import frame_rgba
 
 base_schema = {
     'name': 'Reading',
@@ -33,7 +34,7 @@ def updateAndParseSchema():
     try:
         parsed_schema = parse_schema(schema)
     except Exception as e:
-        logging.getLogger(__name__).exception('avro exception in updateAndParseSchema:')
+        getLogger(__name__).exception('avro exception in updateAndParseSchema:')
         return None
     return parsed_schema
 
@@ -47,9 +48,9 @@ def avroExport(filename, readings):
             # write the schema and headers with the first on
             writer(f, parsed_schema, readings)
     except Exception as e:
-        logging.getLogger(__name__).exception('caught exception in avroExport:')
+        getLogger(__name__).exception('caught exception in avroExport:')
     now = round( time(), 3 )
-    logging.getLogger(__name__).info(f'{count} readings in {now-prev} seconds')
+    getLogger(__name__).info(f'{count} readings in {now-prev} seconds')
 
 def avroImport(filename, readings):
     prev = round( time(), 3 )
@@ -66,14 +67,21 @@ def avroImport(filename, readings):
                 reading["phase"] = record["phase"]
                 reading["phase_velocity"] = record["phase_velocity"]
                 reading["phase_unrolled"] = record["phase_unrolled"]
-                reading["annotation"] = record["annotation"]
+
+                #in some versions of this software 'EXISTING' was set not used as a 'DONT SET'
+                if record["annotation"] == 'EXISTING':
+                    reading["annotation"] = getAnnotations().NONE.name
+                else:
+                    reading["annotation"] = record["annotation"]
                 reading["image"] = record["image"]
                 readings.put(reading)
+                frame_rgba(readings, readings.head, reading)
                 count += 1
+        readings.source = os.path.basename(filename)
         now = round( time(), 3 )
-        logging.getLogger(__name__).info(f'{count} readings imported in {now-prev} seconds')
+        getLogger(__name__).info(f'{count} readings imported in {now-prev} seconds')
     except Exception as e:
-        logging.getLogger(__name__).exception('Caught exception in AvroImport')
+        getLogger(__name__).exception('Caught exception in AvroImport')
     return readings
 
 # TEST CODE

@@ -31,8 +31,9 @@ def backup_thread_impl(readings,config):
         now = datetime.datetime.now()
         sleep_secs = ( 59 - now.minute ) * 60 + 60 - now.second
         time.sleep(sleep_secs)
-        logging.info(f"Backup initiated at {datetime.datetime.now()}")
-        backup_impl(readings,config)
+        if readings.source == 'live':
+            logging.info(f"Backup initiated at {datetime.datetime.now()}")
+            backup_impl(readings,config)
 
     logging.warning("Backup thread ended")
 

@@ -155,7 +155,7 @@ def io_thread_impl(reading_q):
                     try:
                         data = ser.read(1024)
                         length = len(data)
-                        print("recv", length, ": ", list(data))
+                        #print("recv", length, ": ", list(data))
                         if(length > 0):         
                             marshall(reading_q, data)
                             #time.sleep(0.001)

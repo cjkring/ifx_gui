@@ -14,7 +14,7 @@ def addToAnnotations(new_annos):
 
      addToAnnotations.annotations = Enum('annotations', addToAnnotations.anno_dict)
 
-addToAnnotations.anno_dict = {'EXISTING':0, 'NONE':1}
+addToAnnotations.anno_dict = {'EXISTING':0, 'NONE':1, 'ACTIVE':2}
 addToAnnotations.annotations = Enum('annotations', addToAnnotations.anno_dict)
 
 if  __name__ == "__main__":

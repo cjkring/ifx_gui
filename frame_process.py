@@ -1,6 +1,7 @@
-import logging
+from logging import getLogger
 import numpy as np
 import bottleneck as bn
+from annotations import getAnnotations
 
 # this is the entry point
 def process_frame(reading):
@@ -35,7 +36,7 @@ def frame_phase_velocity(reading):
         reading['phase_velocity'] = bn.move_mean( velocity, window=5, min_count=1 )
         #reading['phase_velocity'] = velocity
     except Exception as e:
-        logging.getLogger(__name__).exception('Caught exception: phase velocity:')
+        getLogger(__name__).exception('Caught exception: phase velocity:')
         # dont die but create a noticable result
         reading['phase_velocity'] = reading['phase']
 
@@ -61,7 +62,7 @@ def frame_unroll_phase(reading):
         reading['phase_unrolled'] = unroll
         reading.rollover_count = count
     except Exception as e:
-        logging.getLogger(__name__).exception('Caught exception in unroll_phase:')
+        getLogger(__name__).exception('Caught exception in unroll_phase:')
         # dont die but create a noticable result
         reading['phase_unrolled'] = reading['phase']
         reading.rollover_count = 0
@@ -73,11 +74,20 @@ def clip(i):
 
 # return a (4) array of R,G,B, A values
 def frame_rgba(readings,idx, reading):
+
+    # rgba is a (4,4) array of bytes.  The last column are RBGA values used in the 'video' imshow
+    # rgba[0] is the curser -- the dot that shows the current iqplot idx
+    # rgba[1] is red / green and visualized whether movement to do or from the radar
+    # rgba[2] is magnitude
+    # rgba[3] is activity -- used to clip readings during avroExport
     rgba = readings.rgba[:,idx]
     if rgba[1,3] == 0:
         # dont repeat the work
         rgba[1,2] = 0
         rgba[1,3] = 255
+        # avro export didn't add rollover count
+        if hasattr(reading,'rollover_count') == False:
+            reading.rollover_count = (reading['phase_unrolled'][-1] - reading['phase_unrolled'][0] ) / ( 2 * np.pi)
         if reading.rollover_count >= 0:
             rgba[1,1] = clip( 255 - reading.rollover_count * 15 )
             rgba[1,0] = 255
@@ -91,3 +101,8 @@ def frame_rgba(readings,idx, reading):
         # marker
         rgba[0,0:2] = 0
         rgba[0,0:0] = 0
+
+        if reading['annotation'] != getAnnotations().NONE.name:
+            readings.rgba[3,idx,3] = 100
+        else:
+            readings.rgba[3,idx,3] = 0

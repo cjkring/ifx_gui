@@ -69,33 +69,28 @@ def iqplot_update_test(n, img_q, image):
 def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot, velocity_plot, unrolled_plot, mag_plot, seqno, video, image):
 
     # readings are pushed to reading_q by the io_thread Process.
+    # if the readings source is live,  then push the reading
+    # if not (ie file load), then throw it away
+    # this is easier than controlling io_thread as its a separate process
 
-    #TODO: this probably breaks due to avro load.  Sort out later....
     while reading_q.empty() == False:
         reading = reading_q.get()
-        readings.put(reading)
-        frame_rgba(readings, readings.head, reading)
-        reading['annotation'] = getAnnotations().NONE.name
-        if img_q.empty() == False:
-            reading['image'] = img_q.get()
-            #print(f'added image: {reading["seqno"]}')
-            break
-        else: 
-            reading['image'] = None
+        if readings.source == 'live':
+            readings.put(reading)
+            frame_rgba(readings, readings.head, reading)
+            reading['annotation'] = getAnnotations().NONE.name
+            if img_q.empty() == False:
+                reading['image'] = img_q.get()
+                #print(f'added image: {reading["seqno"]}')
+                break
+            else: 
+                reading['image'] = None
 
  
     if iqplot_update_fig.lastReading == None or iqplot_update_fig.lastReading > readings.head:
         # caused by Avro load
         idx = readings.head
     else:
-
-        # in case annotation button was pressed during the last frame
-        # this is brute force and perhaps incorrect -- perhaps should be cached
-        if buttons.annotation != getAnnotations().EXISTING.name:
-            reading = readings.get(iqplot_update_fig.lastReading)
-            if reading is not None:
-                reading['annotation'] = buttons.annotation.name
-
         idx = buttons.indexFn(iqplot_update_fig.lastReading,readings)
 
     if idx == iqplot_update_fig.lastReading or idx == -1:
@@ -116,11 +111,15 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         #print(f'iqplot update: seqno = {reading["seqno"]}')
 
         # annotation specified by radio button
-        if buttons.annotation != getAnnotations().EXISTING.name:
+        if buttons.annotation != getAnnotations().EXISTING:
             reading['annotation'] = buttons.annotation.name
+            if buttons.annotation != getAnnotations().NONE:
+                readings.rgba[3,idx,3] = 100
+            else:
+                readings.rgba[3,idx,3] = 0
 
         date_time = datetime.fromtimestamp(reading['timestamp'])
-        seqno.set_text(f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"]}')
+        seqno.set_text(f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"]}\nsource:{readings.source}')
         #print(f'{reading["seqno"]},{reading["count"]},{packet[0]},{packet[-1]}')
 
         #iq plot
@@ -151,7 +150,7 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
 
         return scat,phase_plot,velocity_plot,unrolled_plot,mag_plot,seqno, video, image
     except Exception as e:
-        logger.exception('iqplot_update_fig exception')
+        logging.getLogger(__name__).exception('iqplot_update_fig exception')
         return []
 
     
@@ -258,7 +257,7 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     # info text
     ax = plt.subplot2grid(gridsize,(24,0),rowspan=5,colspan=15)
     ax.axis('off')
-    seqno = ax.text(0, 0, "frame:\ntime:\nseqno:\nannotation:",fontsize=8)
+    seqno = ax.text(0, 0, "frame:\ntime:\nseqno:\nannotation:\nsource:",fontsize=8)
 
     # control buttons
     bff_prev = Button( plt.subplot2grid(gridsize,(24,16),rowspan=2,colspan=3), '<<')
@@ -290,6 +289,12 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     bexport = Button( plt.subplot2grid(gridsize,(27,30),rowspan=2,colspan=3), 'export')
     bexport.on_clicked(lambda x: buttons.export(config,readings))
     buttons.exportbutton = bexport
+
+    bprune = Button( plt.subplot2grid(gridsize,(27,34),rowspan=2,colspan=3), 'prune')
+    bprune.on_clicked(lambda x: buttons.prune(readings))
+
+    #bauto = Button( plt.subplot2grid(gridsize,(27,34),rowspan=2,colspan=3), 'auto')
+    #bauto.on_clicked(lambda x: buttons.autoAnnotate(readings))
 
 
     global anim

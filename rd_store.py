@@ -1,27 +1,29 @@
 
 import numpy as np
-import json
-import time
+from time import time
 from annotations import getAnnotations
+from logging import getLogger
 
 class Reading(dict):
 
     def __init__(self, seqno, count, data_i, data_q):
         global Annotations
-        self['timestamp'] = time.time()
+        self['timestamp'] = time()
         self['seqno'] = seqno
         self['count'] = count
         self['data_i'] = np.asarray(data_i)
         self['data_q'] = np.asarray(data_q)
-        #self['annotation'] = getAnnotations()['NONE']
+        self['annotation'] = getAnnotations()['NONE']
 
 class Readings:
     def __init__(self):
         self.head = -1
         self.size = 20000
         self.readings = np.empty(self.size, dtype=Reading)
-        self.rgba = np.zeros((3,self.size,4),dtype=np.ubyte)
+        self.rgba = np.zeros((4,self.size,4),dtype=np.ubyte)
         self.pause = 0
+        # changes to file name if file is imported
+        self.source = 'live'
     
     def __iter__(self):
         return iter(self.readings[:self.head + 1])
@@ -33,8 +35,6 @@ class Readings:
         self.readings[self.head] = reading
 
     def get(self, index):
-        while self.pause == 1:
-            time.sleep(0.01)
         if index > self.head:
             return self.readings[self.head]
         if index < 0:
@@ -51,3 +51,56 @@ class Readings:
         self.head = -1
         self.pause = 0
         return backup
+    
+    # removes all unannotated readings except readings adjacent to an annotated reading
+    # the remaining unannotated readings act as a marker
+
+    # helper only used in prune
+    def update_readings(self, i, idx):
+        if i == idx:
+            return
+        self.readings[idx] = self.readings[i]
+        self.rgba[:,idx] = self.rgba[:,i]
+
+    def prune(self):
+        if self.head == -1: 
+            return
+        prev = round( time(), 3 )
+        self.pause = True
+        readings = self.readings
+        #self.readings = np.empty(self.size, dtype=Reading)
+        idx = 0
+        prev_active = False
+        annotation = readings[0]['annotation']
+        cur_active = ( annotation != getAnnotations().NONE.name )
+        for i in range(self.head):
+            annotation = readings[i+1]['annotation']
+            next_active = ( annotation != getAnnotations().NONE.name )
+            if prev_active == True or cur_active == True or next_active == True:
+                self.update_readings(i, idx)
+                idx += 1
+            prev_active = cur_active
+            cur_active = next_active
+        # take care of readings.head
+        if prev_active == True or cur_active == True:
+            self.update_readings(self.head, idx)
+        self.head = idx
+        self.pause = False
+        now = round( time(), 3 )
+        getLogger(__name__).info(f'{idx} readings retained in {now-prev} seconds')
+        
+
+    # sets annotation to ACTIVE based upon the following
+    # - significant pixel differences between 
+    def autoAnnotate(self):
+        if self.head == -1: 
+            return
+        return
+            
+        
+    
+
+
+            
+
+
