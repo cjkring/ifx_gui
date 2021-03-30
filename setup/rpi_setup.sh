@@ -55,6 +55,11 @@ Name = ifx_button_handler
 Description = rpi 2.7" TFT button hander
 Command /opt/ifx_gui/bin/pi_button_handler.sh
 
+#crobtab entry to remove old data files to prevent disk full
+sudo crontab -e
+@daily root find /var/ifx_gui/data -mtime +6 -type f -delete
+
+
 
 # optional -- set up vscode from your workstation
 # start vscode on your mac

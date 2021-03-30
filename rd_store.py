@@ -13,7 +13,8 @@ class Reading(dict):
         self['count'] = count
         self['data_i'] = np.asarray(data_i)
         self['data_q'] = np.asarray(data_q)
-        self['annotation'] = getAnnotations()['NONE']
+        #self['annotation'] = getAnnotations()['NONE']
+        self['annotation'] = None
 
 class Readings:
     def __init__(self):

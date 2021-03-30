@@ -27,6 +27,8 @@ def image_thread(config,img_q):
     w = 64
     camera = picamera.PiCamera()
     camera.resolution = (w,h)
+    camera.framerate = 1
+    camera.exposure_mode = 'night'
     # black and white
     camera.color_effects = (128,128)
     while True:
@@ -37,7 +39,7 @@ def image_thread(config,img_q):
         now = time.time()
         #print(f'new image = {now}')
         # wake up at top of the current second
-        time.sleep(math.ceil(now) - now)
+        #time.sleep(math.ceil(now) - now)
 
 if  __name__ == "__main__":
     #import threading
