@@ -2,23 +2,27 @@
 
 from annotations import getAnnotations, addToAnnotations
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+from matplotlib.widgets import RadioButtons
 from avro_export import avroExport, avroImport
 from io_thread import io_thread_lock
 from time import time_ns
 import matplotlib.pyplot as plt
-from iqplot import createRadioButton
 from aws_connector import awsExport
 from logging import getLogger
+from numpy import mean
 
 class ButtonPress(object):
     def __init__(self):
-        global Annotations
-        self.indexFn = self.last_impl
+        self.reset()
+        self.annotateButton = None
+    
+    # brings the GUI to a starting state
+    def reset(self):
+        self.indexFn = self.next_impl
         self.intervalMillis = 200
         self.frame_incr = 1
         self.last_update = 0
         self.annotation = getAnnotations().NONE
-        self.annotateButton = None
 
 # to change label
 # button.label.set_text('new label')
@@ -46,11 +50,11 @@ class ButtonPress(object):
         self.frame_incr = -1
         self.set_or_decrement_refresh(self.prev_impl, 500, 200)
 
-    def stop(self, event):
+    def stop(self, event=None):
         self.intervalMillis = 500
         self.indexFn = self.stop_impl
 
-    def next(self, event):
+    def next(self, event=None):
         self.frame_incr = 1
         self.set_or_decrement_refresh(self.next_impl, 500, 200)
 
@@ -59,10 +63,13 @@ class ButtonPress(object):
         self.intervalMillis = 100
         self.set_or_increment_speed(self.ff_next_impl, 10, 10)
 
-    def last(self, event):
+    def seek(self, event=None):
         self.setAnnotationsExisting()
         self.intervalMillis = 100
-        self.indexFn = self.last_impl
+        self.indexFn = self.seek_impl
+
+    def calc(self, event):
+        self.recalc = True
 
     # turns annotations back to existing when a speed button is pressed
     def setAnnotationsExisting(self):
@@ -74,7 +81,14 @@ class ButtonPress(object):
         ax = self.annotateButton.ax
         self.anno_textbox.set_val('')
         ax.clear()
-        createRadioButton(ax, self)
+        self.createRadioButton(ax)
+    
+    def createRadioButton(self,ax):
+        labels = [anno.name for anno in getAnnotations()]
+        bannotate = RadioButtons(ax,labels, active=None)
+        bannotate.on_clicked(self.annotate)
+        bannotate.set_active(0)
+        self.annotateButton = bannotate
 
 
     # when you click on a ff button start at 10 frame increment and increase every click
@@ -121,9 +135,26 @@ class ButtonPress(object):
             return readings.head
         return next_idx
 
-    def last_impl(self,frame_idx,readings):
+    def seek_impl(self,frame_idx,readings):
+        for i in range(frame_idx, readings.head - 10):
+            # mean of RGBA phase red / green values over 10 frames
+            prev = i - 10
+            if prev < 0:
+                prev = 0
+            mean_prev = 255 - mean(readings.rgba[1,prev:i,0:1])
+            next = i + 10
+            if next > readings.head:
+                next = readings.head
+            mean_next = 255 - mean(readings.rgba[1,i:next,0:1])
+            #print(f'seek: i = {i}, mean_next={mean_next}, mean_prev={mean_prev}')
+            if  mean_next > 30 and mean_next > 1.5 * mean_prev:
+            #    print(f'seek: i = {i}, mean_next={mean_next}, mean_prev={mean_prev}')
+                self.stop(None)
+                return i
+        self.next(None)
         return readings.head
 
+    # handler to save the current readings to a file in the data directory
     def save(self,config,readings):
         datadir = config['app']['data']
         if readings.source != 'live':
@@ -133,8 +164,9 @@ class ButtonPress(object):
         getLogger(__name__).info(f'save: {filename}')
         avroExport(filename, readings)
         io_thread_lock(False)
-        self.indexFn = self.last_impl
+        self.indexFn = self.seek_impl
 
+    # handler to load a file
     def load(self,config,readings):
         datadir = config['app']['data']
         filename = askopenfilename(initialdir=datadir,filetypes = (("avro files","*.avro"),("all files","*.*")))
@@ -143,17 +175,20 @@ class ButtonPress(object):
             io_thread_lock(True)
             self.indexFn = self.stop_impl
             avroImport(filename, readings)
-            self.intervalMillis = 10000000
-            self.frame_incr = 1
-            self.indexFn = self.next_impl
+            # restart all GUI modes
+            self.reset()
 
+    # handler to remove big stretches of unannotated data
     def prune(self, readings):
         readings.prune()
 
-    def autoAnnotate(self, readings):
-        readings.autoAnnotate()
+    # handler to recalc readings.  This is useful when loading
+    # old data that might not persisted with up to date calculations
+    def recalc(self, readings):
+        readings.recalc()
 
 
+    # handler to export a file from the data directory to the AWS bucket
     def export(self,config,readings):
         datadir = config['app']['data']
         filename = askopenfilename(initialdir=datadir,filetypes = (("avro files","*.avro"),("all files","*.*")))

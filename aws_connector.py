@@ -1,7 +1,9 @@
 import logging
 import boto3
 from config import read_config, validate_config
-import os.path
+from os import path
+from datetime import datetime
+
 from botocore.exceptions import ClientError
 
 def awsExport(config, filename):
@@ -11,12 +13,12 @@ def awsExport(config, filename):
     s3 = getBotoResource(aws_config)
     table = aws_config['table']
     bucket = s3.Bucket(aws_config['bucket'])
-    basename = os.path.basename(filename)
+    basename = path.basename(filename)
     aws_name = f'{table}/{basename.replace("_","/")}'
     from logging import getLogger
 
     try:
-        response = bucket.upload_file(filename, aws_name)
+        bucket.upload_file(filename, aws_name)
         logging.getLogger(__name__).info(f'awsUpload {basename} as {aws_name}')
 
     except Exception as e:
@@ -26,11 +28,17 @@ def awsExport(config, filename):
 
 def getBotoResource(aws_config):
 
-    return boto3.resource( 's3',
-                            endpoint_url = aws_config['endpoint_url'],
-                            aws_access_key_id = aws_config['key_id'],
-                            aws_secret_access_key = aws_config['key'],
-                            region_name = aws_config['region'] )
+    if 'endpoint_url' in aws_config:
+        return boto3.resource( 's3',
+                                endpoint_url = aws_config['endpoint_url'],
+                                aws_access_key_id = aws_config['key_id'],
+                                aws_secret_access_key = aws_config['key'],
+                                region_name = aws_config['region'] )
+    else:
+        return boto3.resource( 's3',
+                                aws_access_key_id = aws_config['key_id'],
+                                aws_secret_access_key = aws_config['key'],
+                                region_name = aws_config['region'] )
 
 # TEST code 
 if  __name__ == "__main__":
@@ -38,8 +46,12 @@ if  __name__ == "__main__":
     config = read_config()
     if validate_config(config) == False:
         quit()
+    data = config['app']['data']
+    filename = path.join(data,'chuck_awstest.txt') #should end up in the bucket as chuck/awstest.txt
+    with open(filename, 'w') as f:
+        f.write(f'Chuck awstest: {datetime.today()}')
 
-    awsExport(config, 'chuck.txt')
+    awsExport(config, filename)
     #awsImport(config, filename)
 
     #aws_config = config['aws']

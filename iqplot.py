@@ -33,7 +33,7 @@ import cmath
 import threading
 from io_thread import io_thread_impl
 from backup_thread import backup_thread_impl
-from matplotlib.widgets import Button, RadioButtons, TextBox, Slider
+from matplotlib.widgets import Button, TextBox, Slider
 import rd_store
 import button_press
 from annotations import getAnnotations, addToAnnotations
@@ -145,7 +145,24 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         if img_bytes is not None:
             # see comment in image.py about how this has to be a native 
             # python array for Avro export
-            image.set_array(np.reshape(np.frombuffer(img_bytes,dtype=np.uint8),newshape=(64,64)))
+
+            # this block of code colors pixels that are different from the previous 
+            # image
+            img_np = np.reshape(np.frombuffer(img_bytes,dtype=np.uint8),newshape=(64,64))
+            alpha = np.full((64,64),255,dtype = np.ubyte)
+            if iqplot_update_fig.lastImage.size == 0:
+                im_data = np.stack((img_np,img_np,img_np,alpha),axis=-1)
+            else:
+                delta_max = 100
+                diff = np.subtract( img_np, iqplot_update_fig.lastImage, dtype=np.int16)
+                delta = np.abs(diff) * (delta_max/255)
+                img_r = np.clip(img_np + delta, 0, 255).astype(np.uint8)
+                img_gb = np.clip(img_np - delta, 0, 255).astype(np.uint8)
+                im_data = np.stack((img_r,img_gb,img_gb,alpha),axis=-1)
+
+            iqplot_update_fig.lastImage = img_np
+            image.set_array(im_data)
+            #image.set_array(np.reshape(np.frombuffer(img_bytes,dtype=np.uint8),newshape=(64,64)))
             #print(f'set image: {reading["seqno"]}')
 
         return scat,phase_plot,velocity_plot,unrolled_plot,mag_plot,seqno, video, image
@@ -153,13 +170,14 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         logging.getLogger(__name__).exception('iqplot_update_fig exception')
         return []
 
+
     
-def createRadioButton(ax,buttons):
-    labels = [anno.name for anno in getAnnotations()]
-    bannotate = RadioButtons(ax,labels, active=None)
-    bannotate.on_clicked(buttons.annotate)
-    bannotate.set_active(0)
-    buttons.annotateButton = bannotate
+# def createRadioButton(ax,buttons):
+#     labels = [anno.name for anno in getAnnotations()]
+#     bannotate = RadioButtons(ax,labels, active=None)
+#     bannotate.on_clicked(buttons.annotate)
+#     bannotate.set_active(0)
+#     buttons.annotateButton = bannotate
 
 def iqplot_thread_impl(readings,config,reading_q, img_q):
 
@@ -167,12 +185,14 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     Tk()  
     logging.getLogger(__name__).warning("IQ Plot Thread started")
     fig = plt.figure()
+    fig.tight_layout(pad=0.05)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
     # font = {'family': 'monospace',
     #         'weight': 'normal',
     #         'size':8}
     # matplotlib.rc('font', **font)
             
-    #fig.set_size_inches(12,8)
+    fig.set_size_inches(12,8)
     plt.rcParams.update({'font.size':8})
     gridsize = (30,40)
 
@@ -192,9 +212,9 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 
     # phase
     ax = plt.subplot2grid(gridsize,(10,10),rowspan=9,colspan=10)
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_ylim(-np.pi * 1.5,np.pi * 1.5)
+    #ax.set_yticks([])
+    #ax.set_xticks([])
+    ax.set_ylim(-np.pi,np.pi)
     ax.set_xlim(0,255)
     ax.axhline(0,color='grey')
     phase, = ax.plot(offsets)
@@ -202,18 +222,18 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 
     # phase velocity
     ax = plt.subplot2grid(gridsize,(10,0),rowspan=9,colspan=10)
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_ylim(-np.pi/2,np.pi/2)
-    ax.set_xlim(0,254)
+    #ax.set_yticks([])
+    #ax.set_xticks([])
+    ax.set_ylim(-np.pi,np.pi)
+    ax.set_xlim(0,255)
     ax.axhline(0,color='grey')
     velocity, = ax.plot(offsets[:-1])
     #ax.set_title('phase velocity')
 
     # phase unrolled
     ax = plt.subplot2grid(gridsize,(10,20),rowspan=9,colspan=10)
-    ax.set_yticks([])
-    ax.set_xticks([])
+    #ax.set_yticks([])
+    #ax.set_xticks([])
     ax.set_ylim(-np.pi * 10 ,np.pi * 10 )
     ax.set_xlim(0,256)
     ax.axhline(0,color='grey')
@@ -234,13 +254,17 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     ax = plt.subplot2grid(gridsize,(0,20),rowspan=9,colspan=10)
     ax.axis('off')
     #ax.set_title('image')
-    im_data = np.random.randint(230,255,(30,30),dtype=np.ubyte)
-    image = ax.imshow(im_data, vmin=0, vmax=255, cmap='gray')
+    #tmp = np.reshape(np.frombuffer(tbwbwest_bytes,dtype=np.uint8),newshape=(64,64))
+    tmp = np.random.randint(230,255,(64,64),dtype = np.ubyte)
+    tmp_alpha = np.full((64,64),255,dtype = np.ubyte)
+    im_data = np.stack((tmp,tmp,tmp,tmp_alpha),axis=-1)
+    #im_data = np.random.randint(230,255,(60,60),dtype=np.ubyte)
+    image = ax.imshow(im_data, vmin=0, vmax=255)
 
     # annotations buttons
     ax = plt.subplot2grid(gridsize,(0,30),rowspan=18,colspan=10)
     #ax.set_title('annotations')
-    createRadioButton(ax,buttons)
+    buttons.createRadioButton(ax)
 
     ax = plt.subplot2grid(gridsize,(18,30),rowspan=1,colspan=10)
     text_box = TextBox(ax,None)
@@ -275,26 +299,28 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     bff_next = Button( plt.subplot2grid(gridsize,(24,32),rowspan=2,colspan=3), '>>')
     bff_next.on_clicked(buttons.ff_next)
     
-    blast = Button( plt.subplot2grid(gridsize,(24,36),rowspan=2,colspan=3), 'last')
-    blast.on_clicked(buttons.last)
+    # seek fast forwards 20 frame at a time, then stops when the next 10 frames have 
+    # significant activity
+    bseek = Button( plt.subplot2grid(gridsize,(24,36),rowspan=2,colspan=3), 'seek')
+    bseek.on_clicked(buttons.seek)
 
-    bload = Button( plt.subplot2grid(gridsize,(27,22),rowspan=2,colspan=3), 'load')
+    bload = Button( plt.subplot2grid(gridsize,(27,18),rowspan=2,colspan=3), 'load')
     bload.on_clicked(lambda x: buttons.load(config,readings))
     buttons.importbutton = bload
 
-    bsave = Button( plt.subplot2grid(gridsize,(27,26),rowspan=2,colspan=3), 'save')
+    bsave = Button( plt.subplot2grid(gridsize,(27,22),rowspan=2,colspan=3), 'save')
     bsave.on_clicked(lambda x: buttons.save(config,readings))
     buttons.savebutton = bsave
 
-    bexport = Button( plt.subplot2grid(gridsize,(27,30),rowspan=2,colspan=3), 'export')
+    bexport = Button( plt.subplot2grid(gridsize,(27,26),rowspan=2,colspan=3), 'export')
     bexport.on_clicked(lambda x: buttons.export(config,readings))
     buttons.exportbutton = bexport
 
-    bprune = Button( plt.subplot2grid(gridsize,(27,34),rowspan=2,colspan=3), 'prune')
+    bprune = Button( plt.subplot2grid(gridsize,(27,30),rowspan=2,colspan=3), 'prune')
     bprune.on_clicked(lambda x: buttons.prune(readings))
 
-    #bauto = Button( plt.subplot2grid(gridsize,(27,34),rowspan=2,colspan=3), 'auto')
-    #bauto.on_clicked(lambda x: buttons.autoAnnotate(readings))
+    bcalc = Button( plt.subplot2grid(gridsize,(27,34),rowspan=2,colspan=3), 'recalc')
+    bcalc.on_clicked(lambda x: buttons.recalc(readings))
 
 
     global anim
@@ -305,9 +331,15 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     plt.show()
 
 iqplot_update_fig.lastReading = None
+iqplot_update_fig.lastImage = np.array([])
+
+# This is the main entry point to the ifx_gui app
+
 if  __name__ == "__main__":
 
-    #setpgid(getpid(), getpgid(getppid()))
+    # This is used to implement start/stop from a button
+    # It writes a group id to the PID file that the button
+    # hander uses to stop a running instance
     setpgid(0,0)
     with open('/tmp/ifx_gui.gid', 'w') as pid:
         pid.write(f"{getpgid(getpid())}")
@@ -328,7 +360,6 @@ if  __name__ == "__main__":
     io.start()
 
     # this has to be a thread because it relies on readings
-    # if this becomes an issue it can put checked and implemented from the iq_thread
     backup = threading.Thread(target=backup_thread_impl, args=(readings,config))
     backup.start()
     iqplot_thread_impl(readings,config,reading_q, img_q)

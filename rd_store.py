@@ -3,7 +3,7 @@ import numpy as np
 from time import time
 from annotations import getAnnotations
 from logging import getLogger
-
+from frame_process import frame_rgba, process_frame
 class Reading(dict):
 
     def __init__(self, seqno, count, data_i, data_q):
@@ -56,7 +56,7 @@ class Readings:
     # removes all unannotated readings except readings adjacent to an annotated reading
     # the remaining unannotated readings act as a marker
 
-    # helper only used in prune
+    # helper only used in prune, moves readings[i] to readings[idx]
     def update_readings(self, i, idx):
         if i == idx:
             return
@@ -91,12 +91,24 @@ class Readings:
         getLogger(__name__).info(f'{idx} readings retained in {now-prev} seconds')
         
 
+    # unused
     # sets annotation to ACTIVE based upon the following
     # - significant pixel differences between 
     def autoAnnotate(self):
         if self.head == -1: 
             return
         return
+    
+    # reprocesses all frames in readings. Used to reprocess old data files
+    def recalc(self):
+        print('start')
+        for i in range(self.head + 1):
+            if i == 19:
+                print('here')
+            process_frame(self.readings[i])
+            frame_rgba(self, i, self.readings[i])
+        print('done')
+
             
         
     
