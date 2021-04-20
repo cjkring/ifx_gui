@@ -24,6 +24,7 @@ from frame_process import frame_rgba
 import multiprocessing as mp
 
 from os import getpgid, getpid, setpgid
+from numba import njit
 import numpy as np
 import logging
 import time
@@ -48,7 +49,8 @@ anim = None
 logging.getLogger().setLevel(logging.INFO)
 
 # business logic for what rbga frames to show
-def calc_window(idx,window_size,readings):
+@njit
+def calc_window(idx,window_size,head):
     
     if idx < window_size:
         return 0,window_size
@@ -56,8 +58,8 @@ def calc_window(idx,window_size,readings):
     idx_min = int(idx - window_size / 2)
     idx_max = int(idx + window_size / 2)
 
-    if idx_max >= readings.head:
-        return readings.head - window_size,readings.head + 1
+    if idx_max >= head:
+        return head - window_size,head + 1
 
     return idx_min,idx_max
 
@@ -65,6 +67,24 @@ def iqplot_update_test(n, img_q, image):
     if img_q.empty() == False:
         image.set_array(img_q.get())
     return [image]
+
+#@njit("u1[:,:](u1[:],u1[:])")
+#njit
+def color_window(img_np,last_img,alpha):
+    delta_max = 100
+    # delta is absolute value of pixel by pixel difference between the images 
+    diff = np.abs(np.subtract( img_np, last_img, dtype=np.int16))
+    if diff.max() > 5:
+        delta = np.multiply(diff, (delta_max/255))
+    
+        # adding delta to red, removing it from green and blue channels
+        img_r = np.clip(img_np + delta, 0, 255).astype(np.uint8)
+        img_gb = np.clip(img_np - delta, 0, 255).astype(np.uint8)
+
+        # returning an rgba image
+        return np.stack((img_r,img_gb,img_gb,alpha),axis=-1)
+    else:
+        return np.stack((img_np,img_np,img_np,alpha),axis=-1)
 
 def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot, velocity_plot, unrolled_plot, mag_plot, seqno, video, image):
 
@@ -137,7 +157,7 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
         velocity_plot.set_ydata(reading['phase_velocity'])
 
         # setting range for video
-        (idx_min,idx_max) = calc_window(idx,video_frames,readings)
+        (idx_min,idx_max) = calc_window(idx,video_frames,readings.head)
         video.set_array(readings.rgba[:,idx_min:idx_max,:])
 
         #image
@@ -153,12 +173,7 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
             if iqplot_update_fig.lastImage.size == 0:
                 im_data = np.stack((img_np,img_np,img_np,alpha),axis=-1)
             else:
-                delta_max = 100
-                diff = np.subtract( img_np, iqplot_update_fig.lastImage, dtype=np.int16)
-                delta = np.abs(diff) * (delta_max/255)
-                img_r = np.clip(img_np + delta, 0, 255).astype(np.uint8)
-                img_gb = np.clip(img_np - delta, 0, 255).astype(np.uint8)
-                im_data = np.stack((img_r,img_gb,img_gb,alpha),axis=-1)
+                im_data = color_window(img_np, iqplot_update_fig.lastImage,alpha)
 
             iqplot_update_fig.lastImage = img_np
             image.set_array(im_data)

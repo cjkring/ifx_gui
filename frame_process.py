@@ -3,6 +3,7 @@ import numpy as np
 import bottleneck as bn
 from annotations import getAnnotations
 from math import atan2
+from numba import njit
 
 # this is the entry point
 def process_frame(reading):
@@ -19,6 +20,15 @@ def process_frame(reading):
     #frame_rgba(readings, idx, reading)
     #reading['phase'] = bn.move_mean( reading['phase'], window=5, min_count=1 )
 
+@njit
+def handle_rollover(velocity):
+    for k in range(len(velocity)):
+        if velocity[k] < -np.pi:
+            velocity[k] += 2 * np.pi
+        elif velocity[k] > np.pi:
+                velocity[k] -= 2 * np.pi
+   
+
 def frame_phase_velocity(reading):
     try:
         data_i = reading['data_i'][1:] - reading['data_i'][0:-1]
@@ -26,11 +36,7 @@ def frame_phase_velocity(reading):
         tmp = data_i + data_q * 1j
         velocity = np.angle(tmp) - reading['phase'][1:]
         # handle rollover
-        for k in range(len(velocity)):
-            if velocity[k] < -np.pi:
-                velocity[k] += 2 * np.pi
-            elif velocity[k] > np.pi:
-                velocity[k] -= 2 * np.pi
+        handle_rollover(velocity)
         #reading['phase_velocity'] = bn.move_mean( velocity, window=5, min_count=1 )
         reading['phase_velocity'] = velocity 
         
@@ -71,27 +77,33 @@ def frame_phase_velocity(reading):
         # dont die but create a noticable result
         reading['phase_velocity'] = reading['phase']
 
+@njit
+def do_unroll(unroll):
+    # range is -pi to pi
+    threshold = np.pi * 1.6
+    offset = 0
+    count = 0
+    last_v = unroll[0]
+    for i in range(1,len(unroll)):
+        v = unroll[i]
+        tmp = last_v - v
+        if tmp < -threshold:
+            # negative rollover
+            offset -= np.pi * 2
+            count -= 1
+        elif tmp > threshold:
+            # positive rollover
+            offset += np.pi * 2
+            count += 1
+        last_v = v
+        unroll[i] = v + offset
+    return count
+
+
 def frame_unroll_phase(reading):
     try:
-        count = 0
         unroll = np.copy(reading['phase'])
-        # range is -pi to pi
-        threshold = np.pi * 1.6
-        offset = 0
-        last_v = unroll[0]
-        for i in range(1,len(unroll)):
-            v = unroll[i]
-            tmp = last_v - v
-            if tmp < -threshold:
-                # negative rollover
-                offset -= np.pi * 2
-                count -= 1
-            elif tmp > threshold:
-                # positive rollover
-                offset += np.pi * 2
-                count += 1
-            last_v = v
-            unroll[i] = v + offset
+        count = do_unroll(unroll)
         reading['phase_unrolled'] = unroll
         reading.rollover_count = count
     except Exception as e:

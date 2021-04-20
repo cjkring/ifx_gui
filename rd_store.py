@@ -101,13 +101,15 @@ class Readings:
     
     # reprocesses all frames in readings. Used to reprocess old data files
     def recalc(self):
-        print('start')
+
+        prev = round( time(), 3 )
         for i in range(self.head + 1):
             if i == 19:
                 print('here')
             process_frame(self.readings[i])
             frame_rgba(self, i, self.readings[i])
-        print('done')
+        now = round( time(), 3 )
+        print(f'Recalc: done in {now-prev} seconds')
 
             
         

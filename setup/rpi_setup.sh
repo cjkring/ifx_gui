@@ -8,7 +8,7 @@ sudo reboot now  # xfce4 should come up
 # went into raspi-config to set display resolution
 sudo apt install python3 python3-pip git tkinter
 sudi apt install libatlas-base-dev
-sudo apt install python3-bottleneck python3-matplotlib python3-yaml python3-serial python3-fastavro python3-gpiozero
+sudo apt install python3-bottleneck python3-matplotlib python3-yaml python3-serial python3-fastavro python3-gpiozero pyton3-numba
 
 # validate that the camera work
 raspistill -o /tmp/image.png
