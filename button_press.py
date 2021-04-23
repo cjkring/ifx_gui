@@ -10,17 +10,30 @@ import matplotlib.pyplot as plt
 from aws_connector import awsExport
 from logging import getLogger
 from numpy import mean
+from numba import njit
+
+@njit
+def update_idx(last_update, intervalMillis, frame_incr, now, frame_idx,head):
+    if last_update + intervalMillis * 1000000 > now:
+        return frame_idx
+    next_idx = frame_idx + frame_incr
+
+    if next_idx < 0:
+        return 0
+    if next_idx > head:
+        return head
+    return next_idx
 
 class ButtonPress(object):
     def __init__(self):
-        self.reset()
+        self.reset(10)
         self.annotateButton = None
     
     # brings the GUI to a starting state
-    def reset(self):
+    def reset(self,frame_incr):
         self.indexFn = self.next_impl
-        self.intervalMillis = 200
-        self.frame_incr = 1
+        self.intervalMillis = 100
+        self.frame_incr = frame_incr
         self.last_update = 0
         self.annotation = getAnnotations().NONE
 
@@ -44,11 +57,11 @@ class ButtonPress(object):
     def ff_prev(self, event):
         self.setAnnotationsExisting()
         self.intervalMillis = 100
-        self.set_or_increment_speed(self.ff_prev_impl, -10, -10)
+        self.set_or_increment_speed(self.next_impl, -10, -10)
 
     def prev(self, event):
         self.frame_incr = -1
-        self.set_or_decrement_refresh(self.prev_impl, 500, 200)
+        self.set_or_decrement_refresh(self.next_impl, 500, 200)
 
     def stop(self, event=None):
         self.intervalMillis = 500
@@ -61,7 +74,7 @@ class ButtonPress(object):
     def ff_next(self, event):
         self.setAnnotationsExisting()
         self.intervalMillis = 100
-        self.set_or_increment_speed(self.ff_next_impl, 10, 10)
+        self.set_or_increment_speed(self.next_impl, 10, 10)
 
     def seek(self, event=None):
         self.setAnnotationsExisting()
@@ -110,30 +123,12 @@ class ButtonPress(object):
     def stop_impl(self,frame_idx,readings):
         return frame_idx
 
-    def ff_prev_impl(self,frame_idx,readings):
-        return self.update_idx(frame_idx,readings)
-
-    def prev_impl(self,frame_idx,readings):
-        return self.update_idx(frame_idx,readings)
-
     def next_impl(self,frame_idx,readings):
-        return self.update_idx(frame_idx,readings)
-        
-    def ff_next_impl(self,frame_idx,readings):
-        return self.update_idx(frame_idx,readings)
-
-    def update_idx(self,frame_idx,readings):
         now = time_ns()
-        if self.last_update + self.intervalMillis * 1000000 > now:
-            return frame_idx
+        idx = update_idx( self.last_update, self.intervalMillis, self.frame_incr, 
+                          now, frame_idx, readings.head)
         self.last_update = now
-        next_idx = frame_idx + self.frame_incr
-
-        if next_idx < 0:
-            return 0
-        if next_idx > readings.head:
-            return readings.head
-        return next_idx
+        return idx
 
     def seek_impl(self,frame_idx,readings):
         for i in range(frame_idx, readings.head - 10):
@@ -176,7 +171,7 @@ class ButtonPress(object):
             self.indexFn = self.stop_impl
             avroImport(filename, readings)
             # restart all GUI modes
-            self.reset()
+            self.reset(1)
 
     # handler to remove big stretches of unannotated data
     def prune(self, readings):

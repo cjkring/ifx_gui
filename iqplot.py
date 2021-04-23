@@ -342,7 +342,7 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     #anim = animation.FuncAnimation(fig,iqplot_update_fig,fargs=(readings,reading_q, img_q, buttons,scat,phase,velocity,unrolled,magnitude,seqno,video,image),interval=100, blit=False)
     anim = animation.FuncAnimation(fig,iqplot_update_fig,fargs=(readings,reading_q, img_q, buttons,scat,phase,velocity,unrolled,magnitude,seqno,video,image),interval=100, blit=True)
     figManager = plt.get_current_fig_manager()
-    figManager.full_screen_toggle()
+    #figManager.full_screen_toggle()
     plt.show()
 
 iqplot_update_fig.lastReading = None

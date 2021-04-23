@@ -9,8 +9,15 @@ from numba import njit
 def process_frame(reading):
 
     # average all frame values to eliminate bias that affects phase
-    reading['data_i'] -= int(np.mean(reading['data_i']))
-    reading['data_q'] -= int(np.mean(reading['data_q']))
+    if( process_frame.mean_count == 0 or 
+        ( reading['data_i'].max() - reading['data_i'].min() < 100 and
+          reading['data_q'].max() - reading['data_q'].min() < 100 )):
+        process_frame.i_mean_sum += np.mean(reading['data_i'])
+        process_frame.q_mean_sum += np.mean(reading['data_q'])
+        process_frame.mean_count += 1
+        
+    reading['data_i'] -= int(process_frame.i_mean_sum/process_frame.mean_count)
+    reading['data_q'] -= int(process_frame.i_mean_sum/process_frame.mean_count)
 
     reading['packet'] = reading["data_i"] + reading["data_q"] * 1j
     reading['magnitude'] = np.absolute(reading['packet'])
@@ -20,6 +27,9 @@ def process_frame(reading):
     #frame_rgba(readings, idx, reading)
     #reading['phase'] = bn.move_mean( reading['phase'], window=5, min_count=1 )
 
+process_frame.i_mean_sum = 0
+process_frame.q_mean_sum = 0
+process_frame.mean_count = 0
 @njit
 def handle_rollover(velocity):
     for k in range(len(velocity)):
@@ -112,6 +122,7 @@ def frame_unroll_phase(reading):
         reading['phase_unrolled'] = reading['phase']
         reading.rollover_count = 0
 
+@njit
 def clip(i):
     if i < 0: return 0
     if i > 255: return 255
