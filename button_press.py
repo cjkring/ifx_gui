@@ -23,7 +23,6 @@ def update_idx(last_update, intervalMillis, frame_incr, now, frame_idx,head):
     if next_idx > head:
         return head
     return next_idx
-
 class ButtonPress(object):
     def __init__(self):
         self.reset(10)
@@ -36,6 +35,8 @@ class ButtonPress(object):
         self.frame_incr = frame_incr
         self.last_update = 0
         self.annotation = getAnnotations().NONE
+        # this causes the idx to go to zero after a load
+        self.reset_idx = True
 
 # to change label
 # button.label.set_text('new label')
@@ -121,13 +122,20 @@ class ButtonPress(object):
             self.intervalMillis -= increment
 
     def stop_impl(self,frame_idx,readings):
+        if self.reset_idx:
+            self.reset_idx = False
+            return -1
         return frame_idx
 
     def next_impl(self,frame_idx,readings):
+        if self.reset_idx:
+            self.reset_idx = False
+            return -1
         now = time_ns()
         idx = update_idx( self.last_update, self.intervalMillis, self.frame_incr, 
                           now, frame_idx, readings.head)
-        self.last_update = now
+        if idx != frame_idx:
+            self.last_update = now
         return idx
 
     def seek_impl(self,frame_idx,readings):

@@ -49,8 +49,10 @@ class Readings:
         self.readings = backup.readings
         backup.readings = tmp
         backup.head = self.head
+        backup.rgba = self.rgba
         self.head = -1
         self.pause = 0
+        self.rgba = np.zeros((4,self.size,4),dtype=np.ubyte)
         return backup
     
     # removes all unannotated readings except readings adjacent to an annotated reading
@@ -104,8 +106,6 @@ class Readings:
 
         prev = round( time(), 3 )
         for i in range(self.head + 1):
-            if i == 19:
-                print('here')
             process_frame(self.readings[i])
             frame_rgba(self, i, self.readings[i])
         now = round( time(), 3 )
