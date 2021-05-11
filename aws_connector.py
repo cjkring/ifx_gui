@@ -18,8 +18,10 @@ def awsExport(config, filename):
     from logging import getLogger
 
     try:
+        prev = round( time(), 3 )
         bucket.upload_file(filename, aws_name)
-        logging.getLogger(__name__).info(f'awsUpload {basename} as {aws_name}')
+        now = round( time(), 3 )
+        logging.getLogger(__name__).info(f'awsUpload {basename} as {aws_name} in {now-prev} seconds')
 
     except Exception as e:
         logging.getLogger(__name__).exception('Caught exception in awsExport')

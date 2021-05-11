@@ -15,8 +15,10 @@ import matplotlib
 from tkinter import Tk
 if system() == 'Linux':
     matplotlib.use('tkagg')
+    anim_interval = 100
 else:
     matplotlib.use('macosx')
+    anim_interval = 100
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.figure import Figure
@@ -139,8 +141,8 @@ def iqplot_update_fig(n,  readings, reading_q, img_q, buttons, scat, phase_plot,
                 readings.rgba[3,idx,3] = 0
 
         date_time = datetime.fromtimestamp(reading['timestamp'])
-        seqno.set_text(f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"]}\nsource:{readings.source}')
-        #print(f'{reading["seqno"]},{reading["count"]},{packet[0]},{packet[-1]}')
+        seqno_text = f'frame: {idx}\ntime: {date_time}\nseqno: {reading["seqno"]}\nannotation: {reading["annotation"]}\nsource:{readings.source}\nspeed:{buttons.speed}'
+        seqno.set_text(seqno_text)
 
         #iq plot
         scat.set_offsets( np.column_stack((reading["data_i"],reading["data_q"])))
@@ -294,9 +296,9 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
     video = ax.imshow(tmp, vmin=0, vmax=255, aspect='auto')
 
     # info text
-    ax = plt.subplot2grid(gridsize,(24,0),rowspan=5,colspan=15)
+    ax = plt.subplot2grid(gridsize,(23,0),rowspan=5,colspan=15)
     ax.axis('off')
-    seqno = ax.text(0, 0, "frame:\ntime:\nseqno:\nannotation:\nsource:",fontsize=8)
+    seqno = ax.text(0, 0, "frame:\ntime:\nseqno:\nannotation:\nsource:\nspeed:",fontsize=8)
 
     # control buttons
     bff_prev = Button( plt.subplot2grid(gridsize,(24,16),rowspan=2,colspan=3), '<<')
@@ -340,7 +342,7 @@ def iqplot_thread_impl(readings,config,reading_q, img_q):
 
     global anim
     #anim = animation.FuncAnimation(fig,iqplot_update_fig,fargs=(readings,reading_q, img_q, buttons,scat,phase,velocity,unrolled,magnitude,seqno,video,image),interval=100, blit=False)
-    anim = animation.FuncAnimation(fig,iqplot_update_fig,fargs=(readings,reading_q, img_q, buttons,scat,phase,velocity,unrolled,magnitude,seqno,video,image),interval=100, blit=True)
+    anim = animation.FuncAnimation(fig,iqplot_update_fig,fargs=(readings,reading_q, img_q, buttons,scat,phase,velocity,unrolled,magnitude,seqno,video,image),interval=anim_interval, blit=True)
     figManager = plt.get_current_fig_manager()
     #figManager.full_screen_toggle()
     plt.show()

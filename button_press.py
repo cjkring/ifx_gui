@@ -13,6 +13,10 @@ from numpy import mean
 from numba import njit
 
 @njit
+def calcTrueSpeed(frame_idx, idx, last_update, now):
+    return round(( idx - frame_idx ) * 1000000000 / (now - last_update), 1)
+
+@njit
 def update_idx(last_update, intervalMillis, frame_incr, now, frame_idx,head):
     if last_update + intervalMillis * 1000000 > now:
         return frame_idx
@@ -37,12 +41,21 @@ class ButtonPress(object):
         self.annotation = getAnnotations().NONE
         # this causes the idx to go to zero after a load
         self.reset_idx = True
+        #self.calcSpeed()
 
 # to change label
 # button.label.set_text('new label')
     
     #def get.intervalMillis(self):
     #    return self.intervalMillis
+
+    def calcSpeed(self):
+        if self.intervalMillis == 0:
+            return 0
+        self.speed = f'{1000/self.intervalMillis * self.frame_incr} frames/second'
+
+    def getSpeed(self): 
+        return self.speed
 
     # annotation radio button
     def annotate(self, event):
@@ -56,34 +69,51 @@ class ButtonPress(object):
     # frame press event handlers
 
     def ff_prev(self, event):
+        self.resetIf(self.frame_incr > -5)
         self.setAnnotationsExisting()
         self.intervalMillis = 100
-        self.set_or_increment_speed(self.next_impl, -10, -10)
+        self.set_or_increment_speed(self.next_impl, -5, 2)
+        #self.calcSpeed()
 
     def prev(self, event):
+        self.resetIf(self.frame_incr != -1)
         self.frame_incr = -1
-        self.set_or_decrement_refresh(self.next_impl, 500, 200)
+        self.set_or_decrement_refresh(self.next_impl, 400, 2)
+        #self.calcSpeed()
 
     def stop(self, event=None):
         self.intervalMillis = 500
         self.indexFn = self.stop_impl
+        #self.calcSpeed()
 
     def next(self, event=None):
+        self.resetIf(self.frame_incr != 1)
         self.frame_incr = 1
-        self.set_or_decrement_refresh(self.next_impl, 500, 200)
+        self.set_or_decrement_refresh(self.next_impl, 400, 2)
+        #self.calcSpeed()
 
     def ff_next(self, event):
+        self.resetIf(self.frame_incr < 5)
         self.setAnnotationsExisting()
         self.intervalMillis = 100
-        self.set_or_increment_speed(self.next_impl, 10, 10)
+        self.set_or_increment_speed(self.next_impl, 5, 2)
+        #self.calcSpeed()
 
     def seek(self, event=None):
         self.setAnnotationsExisting()
         self.intervalMillis = 100
         self.indexFn = self.seek_impl
+        self.speed = 'seek'
 
     def calc(self, event):
         self.recalc = True
+
+    # condition is true when switching speed buttons (e.g. prev to next)
+    # does a virtual stop because the handlers depend on existing button state
+    def resetIf(self,condition):
+        if condition:
+            self.intervalMillis = 500
+            self.indexFn = self.stop_impl
 
     # turns annotations back to existing when a speed button is pressed
     def setAnnotationsExisting(self):
@@ -111,7 +141,7 @@ class ButtonPress(object):
             self.indexFn = indexFn
             self.frame_incr = init
         else:
-            self.frame_incr += increment
+            self.frame_incr *= increment
 
     # when you click on a next/prev button it starts at 500 millis then decrease every click
     def set_or_decrement_refresh(self, indexFn, init, increment):
@@ -119,12 +149,13 @@ class ButtonPress(object):
             self.indexFn = indexFn
             self.intervalMillis = init
         else:
-            self.intervalMillis -= increment
+            self.intervalMillis /= increment
 
     def stop_impl(self,frame_idx,readings):
         if self.reset_idx:
             self.reset_idx = False
             return -1
+        self.speed = 0
         return frame_idx
 
     def next_impl(self,frame_idx,readings):
@@ -134,6 +165,7 @@ class ButtonPress(object):
         now = time_ns()
         idx = update_idx( self.last_update, self.intervalMillis, self.frame_incr, 
                           now, frame_idx, readings.head)
+        self.speed = calcTrueSpeed(frame_idx, idx, self.last_update, now)
         if idx != frame_idx:
             self.last_update = now
         return idx
@@ -152,8 +184,14 @@ class ButtonPress(object):
             #print(f'seek: i = {i}, mean_next={mean_next}, mean_prev={mean_prev}')
             if  mean_next > 30 and mean_next > 1.5 * mean_prev:
             #    print(f'seek: i = {i}, mean_next={mean_next}, mean_prev={mean_prev}')
+                now = time_ns()
+                self.speed = calcTrueSpeed(frame_idx, idx, self.last_update, now)
+                self.last_update = now
                 self.stop(None)
                 return i
+        now = time_ns()
+        self.speed = calcTrueSpeed(frame_idx, idx, self.last_update, now)
+        self.last_update = now
         self.next(None)
         return readings.head
 
